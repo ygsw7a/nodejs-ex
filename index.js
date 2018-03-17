@@ -1,108 +1,122 @@
-//  OpenShift sample Node application
-var express = require('express'),
-    app     = express(),
-    morgan  = require('morgan');
-    
-Object.assign=require('object-assign')
+var express = require('express');
+var path = require('path')
+var router = express.Router();
+var temp = require('temp');
+//var fs = require('fs');
+var http = require('http');
 
-app.engine('html', require('ejs').renderFile);
-app.use(morgan('combined'))
+var formidable = require('formidable'),
+    //http = require('http'),
+    util = require('util'),
+    fs   = require('fs-extra');
 
-var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
-    ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0',
-    mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
-    mongoURLLabel = "";
+var app = express();
+//app.use(express.logger());
 
-if (mongoURL == null && process.env.DATABASE_SERVICE_NAME) {
-  var mongoServiceName = process.env.DATABASE_SERVICE_NAME.toUpperCase(),
-      mongoHost = process.env[mongoServiceName + '_SERVICE_HOST'],
-      mongoPort = process.env[mongoServiceName + '_SERVICE_PORT'],
-      mongoDatabase = process.env[mongoServiceName + '_DATABASE'],
-      mongoPassword = process.env[mongoServiceName + '_PASSWORD']
-      mongoUser = process.env[mongoServiceName + '_USER'];
+app.get('/', function(request, response) {
+  response.send('Hello World!');
+});
 
-  if (mongoHost && mongoPort && mongoDatabase) {
-    mongoURLLabel = mongoURL = 'mongodb://';
-    if (mongoUser && mongoPassword) {
-      mongoURL += mongoUser + ':' + mongoPassword + '@';
-    }
-    // Provide UI label that excludes user id and pw
-    mongoURLLabel += mongoHost + ':' + mongoPort + '/' + mongoDatabase;
-    mongoURL += mongoHost + ':' +  mongoPort + '/' + mongoDatabase;
+var server = http.createServer(function(req, res) { // var server
+    res.writeHead(200, {'Content-Type': 'text/html'
+    });
 
+  /* Process the form uploads */
+  if (req.url == '/upload' && req.method.toLowerCase() == 'post') {
+    var form = new formidable.IncomingForm();
+    form.parse(req, function(err, fields, files) {
+      res.writeHead(200, {'content-type': 'text/plain'});//plain
+
+      res.write('received upload:\n\n');
+      res.end(util.inspect({fields: fields, files: files}));
+    });
+ 
+    form.on('progress', function(bytesReceived, bytesExpected) {
+        var percent_complete = (bytesReceived / bytesExpected) * 100;
+        console.log(percent_complete.toFixed(2));
+    });
+ 
+    form.on('error', function(err) {
+        console.error(err);
+    });
+ 
+    form.on('end', function(fields, files) {
+        /* Temporary location of our uploaded file */
+        var temp_path = this.openedFiles[0].path;
+        /* The file name of the uploaded file */
+        var file_name = this.openedFiles[0].name;
+        /* Location where we want to copy the uploaded file */
+	
+        var new_location = path.resolve(__dirname) +'/'; //'c:/localhost/nodejs/';//
+ 	
+	fs.copy(temp_path, new_location + file_name, function(err) {  
+            if (err) {
+                console.error(err);
+            } else {
+                console.log("success!")
+            }
+        });
+    });
+
+    return;
   }
-}
-var db = null,
-    dbDetails = new Object();
 
-var initDb = function(callback) {
-  if (mongoURL == null) return;
+  //const { exec } = require('child_process');//yg
+  //exec('mv old_file_name new_file_name');//yg
+  //exec('mv input.txt inputTest.csv');//yg
+  
+  /* Display the file upload form. */
+  res.writeHead(200, {'content-type': 'text/html'});
+  res.end(
+    '<form action="/upload" enctype="multipart/form-data" method="post">'+
+    '<input type="text" name="title"><br>'+
+    '<input type="file" name="upload" multiple="multiple"><br>'+
+    '<input type="submit" value="Upload">'+
+    '</form>'
+  );
+//});
 
-  var mongodb = require('mongodb');
-  if (mongodb == null) return;
+  var type = 'standalone_flex_fileH'//yg
 
-  mongodb.connect(mongoURL, function(err, conn) {
-    if (err) {
-      callback(err);
-      return;
-    }
-
-    db = conn;
-    dbDetails.databaseName = db.databaseName;
-    dbDetails.url = mongoURLLabel;
-    dbDetails.type = 'MongoDB';
-
-    console.log('Connected to MongoDB at: %s', mongoURL);
+  router.get('/', function(req, res) {  //yg
+    res.render('primes', {target:type});  //yg
   });
-};
 
-app.get('/', function (req, res) {
-  // try to initialize the db on every request if it's not already
-  // initialized.
-  if (!db) {
-    initDb(function(err){});
-  }
-  if (db) {
-    var col = db.collection('counts');
-    // Create a document with request IP and current time of request
-    col.insert({ip: req.ip, date: Date.now()});
-    col.count(function(err, count){
-      if (err) {
-        console.log('Error running count. Message:\n'+err);
-      }
-      res.render('index.html', { pageCountMessage : count, dbInfo: dbDetails });
-    });
-  } else {
-    res.render('index.html', { pageCountMessage : null});
-  }
+  //router.post('/', function(req, res) { //yg  do not need this line
+       
+  //console.log("to here 3 ");
+
+  var exec = require('child_process').exec;
+  var execFile = require('child_process').execFile
+  var program = "./cpp/standalone_flex_fileH/build/Release/standalone_flex_fileH";
+//    var under = parseInt(req.body.under);
+
+//temp.mkdir('node_example', function(err, dirPath) {
+    //  var inputPath = path.join(__dirPath, 'input.txt');
+    //  var outputPath = path.join(__dirPath, 'output.txt');
+        
+    var inputPath = path.join(__dirname, 'input.csv');
+    var outputPath = path.join(__dirname, 'output.csv');
+        console.log("input File " + inputPath);
+ 	console.log("output File " + outputPath);
+	console.log("Calculation Done! ");
+
+    //  fs.writeFile(inputPath, under, function(err) {
+    //    if (err) throw err;
+        
+    var primes = execFile(program, [inputPath, outputPath], function(error) {
+            if (error ) throw error;
+           // fs.readFile(outputPath, function(err, data) {
+           //   if (err) throw err;
+        //});
+     // });
+    //});
+  });
+}).listen(5000) //;
+
+module.exports = router;
+
+var port = process.env.PORT || 5000;
+server.listen(port, function() {
+  console.log("Listening on " + port);
 });
-
-app.get('/pagecount', function (req, res) {
-  // try to initialize the db on every request if it's not already
-  // initialized.
-  if (!db) {
-    initDb(function(err){});
-  }
-  if (db) {
-    db.collection('counts').count(function(err, count ){
-      res.send('{ pageCount: ' + count + '}');
-    });
-  } else {
-    res.send('{ pageCount: -1 }');
-  }
-});
-
-// error handling
-app.use(function(err, req, res, next){
-  console.error(err.stack);
-  res.status(500).send('Something bad happened!');
-});
-
-initDb(function(err){
-  console.log('Error connecting to Mongo. Message:\n'+err);
-});
-
-app.listen(port, ip);
-console.log('Server running on http://%s:%s', ip, port);
-
-module.exports = app ;
