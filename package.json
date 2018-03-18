@@ -15,7 +15,7 @@
     "ejs": "^2.5.6",
     "express": "^4.15.2",
     "formidable": "^1.2.0",
-    "temp": "^0.8.3"
+ "fs-extra": "^5.6.0",   "temp": "^0.8.3"
   },
   "devDependencies": {
     "request": "^2.81.0",
