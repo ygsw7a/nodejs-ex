@@ -112,11 +112,14 @@ var server = http.createServer(function(req, res) { // var server
      // });
     //});
   });
-}).listen(5000) //;
+}).listen(8080) //;
 
 module.exports = router;
 
-var port = process.env.PORT || 5000;
+var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080, //;
+    ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0',
+    mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
+    mongoURLLabel = "";
 server.listen(port, function() {
   console.log("Listening on " + port);
 });
